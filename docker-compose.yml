@@ -1,0 +1,13 @@
+version: "2.4"
+services:
+  kaggler:
+    build: .
+    volumes:
+      - $PWD:/tmp/working
+    working_dir: /tmp/working
+    ports:
+      - 8888:8888
+    command: jupyter notebook --ip=0.0.0.0 --allow-root --no-browser
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
