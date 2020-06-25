@@ -18,8 +18,12 @@ def rating_dataset():
         [pd.read_csv("./data/input/train_data.csv").drop(["y"], axis=1),
          pd.read_csv("./data/input/test_data.csv")]
     ).reset_index(drop=True)
-    train = all_df[~all_df["ratings_disabled"] & ~all_df["comments_disabled"]].reset_index(drop=True)
-    test = all_df[all_df["ratings_disabled"] & ~all_df["comments_disabled"]].reset_index(drop=True)
+
+    # train = all_df[~all_df["ratings_disabled"] & ~all_df["comments_disabled"]].reset_index(drop=True)
+    # test = all_df[all_df["ratings_disabled"] & ~all_df["comments_disabled"]].reset_index(drop=True)
+    train = all_df[~all_df["ratings_disabled"]].reset_index(drop=True)
+    test = all_df[all_df["ratings_disabled"]].reset_index(drop=True)
+
     test = test.drop(["likes", "dislikes"], axis=1)
     train.likes = train.likes.apply(np.log1p)
     train.dislikes = train.dislikes.apply(np.log1p)
@@ -87,8 +91,12 @@ def comment_dataset():
         [pd.read_csv("./data/input/train_data.csv").drop(["y"], axis=1),
          pd.read_csv("./data/input/test_data.csv")]
     ).reset_index(drop=True)
-    train = all_df[~all_df["ratings_disabled"] & ~all_df["comments_disabled"]].reset_index(drop=True)
-    test = all_df[~all_df["ratings_disabled"] & all_df["comments_disabled"]].reset_index(drop=True)
+
+    # train = all_df[~all_df["ratings_disabled"] & ~all_df["comments_disabled"]].reset_index(drop=True)
+    # test = all_df[~all_df["ratings_disabled"] & all_df["comments_disabled"]].reset_index(drop=True)
+    train = all_df[~all_df["comments_disabled"]].reset_index(drop=True)
+    test = all_df[all_df["comments_disabled"]].reset_index(drop=True)
+
     test = test.drop(["comment_count"], axis=1)
     train.likes = train.likes.apply(np.log1p)
     train.dislikes = train.dislikes.apply(np.log1p)
@@ -178,11 +186,38 @@ def comment_main():
     # return train_x, train_y_likes, train_y_dislikes, test_x, ids
 
 
+params = {
+    'objective': 'mean_squared_error',
+    # 'max_depth': 6,
+    'learning_rate': 0.1,
+    "boosting_type": "gbdt",
+    "metric": 'rmse',
+    'lambda_l1': 2.94393343297745e-08,
+    'lambda_l2': 0.00010003095098613326,
+    'num_leaves': 31,
+    'feature_fraction': 0.5,
+    'bagging_fraction': 0.8176254967309975,
+    'bagging_freq': 1,
+    'min_child_samples': 5,
+    'random_state': 0,
+    'early_stopping_rounds': 200,
+    'n_estimators': 50000,
+}
+
+
 def ensemble(train_x, train_y, test_x, ids, name):
     preds_train = []
     preds_test = []
+
+    drop_null = set(test_x.keys()[test_x.isna().any()].to_list() + train_x.keys()[train_x.isna().any()].to_list())
+    drop_list = ["publishedAt", "categoryId", "collection_date"] + list(drop_null)
+    train_x = train_x.drop(drop_list, axis=1)
+    test_x = test_x.drop(drop_list, axis=1)
+
     for i in range(5):
-        pred_train, pred_test = learn_sklearn.main(train_x, train_y, test_x, ids, i)
+        # pred_train, pred_test = learn_sklearn.main(train_x, train_y, test_x, ids, i)
+        params["random_state"] = i
+        pred_train, pred_test = learn_lgb.predict_cv(params, train_x, train_y, test_x, seed=i)
         preds_train.append(pred_train)
         preds_test.append(pred_test)
 

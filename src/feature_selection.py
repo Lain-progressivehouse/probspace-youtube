@@ -89,7 +89,20 @@ def display_distributions(actual_imp_df, null_imp_df, feature):
     plt.show()
 
 
-def null_importance(train_x=None, train_y=None, test_x=None, ids=None, seed=22):
+def null_importance(train_x=None, train_y=None, test_x=None, ids=None, seed=22, create=False):
+    # 閾値を設定
+    THRESHOLD = 40
+
+    if not create:
+        print(f"Create {create}")
+        actual_importance = pd.read_csv("./data/null_importance.csv")
+        imp_features = []
+        for feature, score in zip(actual_importance["feature"], actual_importance["score"]):
+            if score >= THRESHOLD:
+                imp_features.append(feature)
+        print(str(len(imp_features)), 'selected features')
+        return imp_features
+
     if train_x is None:
         train_x, train_y, test_x, ids = data_frame.main()
 
@@ -108,8 +121,7 @@ def null_importance(train_x=None, train_y=None, test_x=None, ids=None, seed=22):
     # for feature in actual_importance["feature"][:5]:
     #     display_distributions(actual_importance, null_importance, feature)
 
-    # 閾値を設定
-    THRESHOLD = 40
+
 
     score_list = []
 

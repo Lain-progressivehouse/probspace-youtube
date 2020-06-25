@@ -9,6 +9,7 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 import umap
+import pickle
 
 from src import sentence_splitter
 
@@ -251,12 +252,12 @@ def make_dataset(complement=True):
     # test = test.merge(test_thumbnail, on="video_id")
 
     # サムネイル特徴量
-    train_image_features = pd.read_csv("./data/input/train_image_features.csv")
-    test_image_features = pd.read_csv("./data/input/test_image_features.csv")
-    train_umap, test_umap = get_umap(train_image_features, test_image_features, size=2)
-    pca_cols = [f"image_features_umap_{i}" for i in range(2)]
-    train = pd.concat([train, pd.DataFrame(train_umap, columns=pca_cols)], axis=1)
-    test = pd.concat([test, pd.DataFrame(test_umap, columns=pca_cols)], axis=1)
+    # train_image_features = pd.read_csv("./data/input/train_image_features.csv")
+    # test_image_features = pd.read_csv("./data/input/test_image_features.csv")
+    # train_umap, test_umap = get_umap(train_image_features, test_image_features, size=2)
+    # pca_cols = [f"image_features_umap_{i}" for i in range(2)]
+    # train = pd.concat([train, pd.DataFrame(train_umap, columns=pca_cols)], axis=1)
+    # test = pd.concat([test, pd.DataFrame(test_umap, columns=pca_cols)], axis=1)
 
     train.likes = train.likes.apply(np.log1p)
     test.likes = test.likes.apply(np.log1p)
@@ -356,7 +357,9 @@ def make_dataset(complement=True):
 
     target_list = ["likes", "dislikes", "comment_count", "title_len", "channelTitle_len", "description_len",
                    "tags_count", "description_ja_count", "description_en_count", "title_ja_count", "title_en_count",
-                   "publishedAt", "likes_ratio"]
+                   "publishedAt",
+                   "likes_ratio", "period", "likes_ratio", "title_en_ratio", "description_ja_ratio",
+                   "likes_per_day", "dislikes_per_day", "comment_per_day"]
 
     for col, target in product(category, target_list):
         group(train, test, col, target, all_df)
@@ -399,6 +402,24 @@ def make_dataset(complement=True):
     # copy_train["likes"] = -1
     # copy_train["dislikes"] = -1
     # train = pd.concat([train, copy_train]).reset_index(drop=True)
+
+    # importance高いもの同士で演算
+    calc_list = ["likes_ratio", "period", "likes_ratio", "title_en_ratio", "description_ja_ratio",
+    "likes_per_day", "dislikes_per_day", "comment_per_day"]
+    for col_1, col_2 in product(calc_list, calc_list):
+        if col_1 == col_2:
+            continue
+        if f"{col_2}_mul_{col_1}" not in train.keys():
+            train[f"{col_1}_mul_{col_2}"] = train[col_1] * train[col_2]
+            test[f"{col_1}_mul_{col_2}"] = test[col_1] * test[col_2]
+        train[f"{col_1}_div_{col_2}"] = train[col_1] / train[col_2]
+        test[f"{col_1}_div_{col_2}"] = test[col_1] / test[col_2]
+
+
+    with open("./data/input/pkl/train.pkl", "wb") as f:
+        pickle.dump(train, f)
+    with open("./data/input/pkl/test.pkl", "wb") as f:
+        pickle.dump(test, f)
 
     return train, test
 

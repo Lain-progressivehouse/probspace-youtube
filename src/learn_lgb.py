@@ -41,7 +41,7 @@ def predict_cv(params, train_x, train_y, test_x, seed=22):
     # sss = GroupKFold(n_splits=10)
 
     # クロスバリデーションで学習・予測を行い、予測値とインデックスを保存する
-    for i, (tr_idx, va_idx) in enumerate(sss.split(train_x, train_y // 10)):
+    for i, (tr_idx, va_idx) in enumerate(sss.split(train_x, train_y // 4)):
         tr_x, va_x = train_x.iloc[tr_idx], train_x.iloc[va_idx]
         tr_y, va_y = train_y.iloc[tr_idx], train_y.iloc[va_idx]
 
@@ -124,6 +124,14 @@ params = {
 def main(train_x=None, train_y=None, test_x=None, ids=None, seed=22):
     if train_x is None:
         train_x, train_y, test_x, ids = data_frame.main()
+
+    # embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids)
+    # if "categoryId_TE_mean" not in embeded_lgb_feature:
+    #     embeded_lgb_feature.append("categoryId_TE_mean")
+    # if "ratings_disabled" not in embeded_lgb_feature:
+    #     embeded_lgb_feature.append("ratings_disabled")
+    # train_x = train_x[embeded_lgb_feature]
+    # test_x = test_x[embeded_lgb_feature]
 
     pred_train, pred_test = predict_cv(params, train_x, train_y, test_x, seed)
 
@@ -236,7 +244,7 @@ def ensemble_diff_category_TE(train_x=None, train_y=None, test_x=None, ids=None)
 
 def em(complement=True):
     train_x, train_y, test_x, ids = data_frame.main(complement=complement)
-    embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids)
+    embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids, create=False)
     # embeded_lgb_feature = feature_selection.main(train_x, train_y, test_x, ids)
     if "categoryId_TE_mean" not in embeded_lgb_feature:
         embeded_lgb_feature.append("categoryId_TE_mean")
@@ -273,41 +281,23 @@ def em(complement=True):
     sub["id"] = ids
     sub['y'] = np.expm1(pred_test)
 
-    sub.to_csv('./data/output/test_lgb.csv', index=False)
+    sub.to_csv(f'./data/output/test_lgb_complement_{complement}.csv', index=False)
 
     sub = pd.DataFrame()
     sub['y'] = np.expm1(pred_train)
 
-    sub.to_csv('./data/output/train_lgb.csv', index=False)
+    sub.to_csv(f'./data/output/train_lgb_complement_{complement}.csv', index=False)
 
-    return pred_train, pred_test
+    return pred_train, pred_test, preds_train, preds_test
 
 
 def em2():
     train_x, train_y, test_x, ids = data_frame.main(complement=True)
-    pred_train_a, pred_test_a = em(complement=True)
-    pred_train_b, pred_test_b = em(complement=False)
+    pred_train_a, pred_test_a, _, _ = em(complement=True)
+    pred_train_b, pred_test_b, _, _ = em(complement=False)
     # 平均をとる
     pred_train = np.mean([pred_train_a, pred_train_b], axis=0)
     pred_test = np.mean([pred_test_a, pred_test_b], axis=0)
-
-    # pred_train = []
-    # for comments_disabled, ratings_disabled, pred_a, pred_b in zip(train_x["comments_disabled"],
-    #                                                                train_x["ratings_disabled"], pred_train_a,
-    #                                                                pred_train_b):
-    #     if comments_disabled ^ ratings_disabled:
-    #         pred_train.append(pred_a)
-    #     else:
-    #         pred_train.append(pred_b)
-    #
-    # pred_test = []
-    # for comments_disabled, ratings_disabled, pred_a, pred_b in zip(test_x["comments_disabled"],
-    #                                                                test_x["ratings_disabled"], pred_test_a,
-    #                                                                pred_test_b):
-    #     if comments_disabled ^ ratings_disabled:
-    #         pred_test.append(pred_a)
-    #     else:
-    #         pred_test.append(pred_b)
 
     output_metrics(train_y, pred_train)
     output_metrics(np.expm1(train_y), np.expm1(pred_train))
