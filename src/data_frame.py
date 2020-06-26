@@ -2,7 +2,7 @@ import re
 import unicodedata
 from collections import Counter
 from itertools import product
-
+import pickle
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import TruncatedSVD
@@ -405,7 +405,7 @@ def make_dataset(complement=True):
 
     # importance高いもの同士で演算
     calc_list = ["likes_ratio", "period", "likes_ratio", "title_en_ratio", "description_ja_ratio",
-    "likes_per_day", "dislikes_per_day", "comment_per_day"]
+                 "likes_per_day", "dislikes_per_day", "comment_per_day"]
     for col_1, col_2 in product(calc_list, calc_list):
         if col_1 == col_2:
             continue
@@ -415,17 +415,21 @@ def make_dataset(complement=True):
         train[f"{col_1}_div_{col_2}"] = train[col_1] / train[col_2]
         test[f"{col_1}_div_{col_2}"] = test[col_1] / test[col_2]
 
-
-    with open("./data/input/pkl/train.pkl", "wb") as f:
+    with open(f"./data/input/pkl/train_complement_{complement}.pkl", "wb") as f:
         pickle.dump(train, f)
-    with open("./data/input/pkl/test.pkl", "wb") as f:
+    with open(f"./data/input/pkl/test_complement_{complement}.pkl", "wb") as f:
         pickle.dump(test, f)
 
     return train, test
 
 
 def main(complement=True):
-    train, test = make_dataset(complement=complement)
+    # train, test = make_dataset(complement=complement)
+    with open(f"./data/input/pkl/train_complement_{complement}.pkl", "rb") as f:
+        train = pickle.load(f)
+    with open(f"./data/input/pkl/test_complement_{complement}.pkl", "rb") as f:
+        test = pickle.load(f)
+
     drop_list = ["id", "video_id", "title", "channelId", "channelTitle",
                  "tags", "thumbnail_link", "description"]
     ids = test.id

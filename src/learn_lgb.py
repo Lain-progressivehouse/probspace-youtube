@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from src import data_frame, feature_selection
+from src import data_frame, feature_selection, pseudo
 
 
 def augment(df_x, df_y):
@@ -79,6 +79,9 @@ def predict_cv(params, train_x, train_y, test_x, seed=22):
 
 
 def output_metrics(y, pred_y):
+    train_len = len(pd.read_csv("./data/input/train_data.csv"))
+    y = y[:train_len]
+    pred_y = pred_y[:train_len]
     print('RMSE score = \t {}'.format(np.sqrt(mean_squared_error(y, pred_y))))
     print('MAE score = \t {}'.format(mean_absolute_error(y, pred_y)))
 
@@ -250,24 +253,30 @@ def em(complement=True):
         embeded_lgb_feature.append("categoryId_TE_mean")
     if "ratings_disabled" not in embeded_lgb_feature:
         embeded_lgb_feature.append("ratings_disabled")
+    train_x = train_x[embeded_lgb_feature]
+    test_x = test_x[embeded_lgb_feature]
+
+    print(test_x.shape)
+    train_x, train_y, test_x = pseudo.get_pseudo_data_set(train_x, train_y, test_x, threshold=0.3)
+    print(test_x.shape)
 
     preds_train = []
     preds_test = []
     # categoryIdのTEの差分
     pred_train, pred_test = ensemble_diff_category_TE(
-        train_x[embeded_lgb_feature], train_y, test_x[embeded_lgb_feature], ids)
+        train_x, train_y, test_x, ids)
     preds_train.append(pred_train)
     preds_test.append(pred_test)
 
     # 通常
     pred_train, pred_test = ensemble(
-        train_x[embeded_lgb_feature], train_y, test_x[embeded_lgb_feature], ids)
+        train_x, train_y, test_x, ids)
     preds_train.append(pred_train)
     preds_test.append(pred_test)
 
     # 期間で除算
     pred_train, pred_test = ensemble_div_period(
-        train_x[embeded_lgb_feature], train_y, test_x[embeded_lgb_feature], ids)
+        train_x, train_y, test_x, ids)
     preds_train.append(pred_train)
     preds_test.append(pred_test)
 
