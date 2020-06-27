@@ -247,7 +247,7 @@ def ensemble_diff_category_TE(train_x=None, train_y=None, test_x=None, ids=None)
 
 def em(complement=True):
     train_x, train_y, test_x, ids = data_frame.main(complement=complement)
-    embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids, create=False)
+    embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids, create=True)
     # embeded_lgb_feature = feature_selection.main(train_x, train_y, test_x, ids)
     if "categoryId_TE_mean" not in embeded_lgb_feature:
         embeded_lgb_feature.append("categoryId_TE_mean")
@@ -256,9 +256,7 @@ def em(complement=True):
     train_x = train_x[embeded_lgb_feature]
     test_x = test_x[embeded_lgb_feature]
 
-    print(test_x.shape)
     train_x, train_y, test_x = pseudo.get_pseudo_data_set(train_x, train_y, test_x, threshold=0.3)
-    print(test_x.shape)
 
     preds_train = []
     preds_test = []

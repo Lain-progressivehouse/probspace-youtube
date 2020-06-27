@@ -77,6 +77,11 @@ def group(train, test, col, target, all_df):
     train["group_" + col + "_max_" + target] = train[col].map(max_map)
     test["group_" + col + "_max_" + target] = test[col].map(max_map)
 
+    train["group_" + col + "_range_" + target] = \
+        train["group_" + col + "_max_" + target] - train["group_" + col + "_min_" + target]
+    test["group_" + col + "_range_" + target] = \
+        test["group_" + col + "_max_" + target] - test["group_" + col + "_min_" + target]
+
 
 def calculate(df: pd.DataFrame):
     df["eval_count"] = df.likes + df.dislikes
@@ -199,6 +204,15 @@ def title_counter(train, test, n=100, pca_size=None, drop=False, create=True):
     train = train.drop(["title_words"], axis=1)
     test = test.drop(["title_words"], axis=1)
     return train, test
+
+
+def count_tag_in_title(tags, title):
+    tag_list = str(tags).split("|")
+    count = 0
+    for tag in tag_list:
+        if tag in str(title):
+            count += 1
+    return count
 
 
 def category_unstack(train, test, all_df, group, category, normalize=True, pca_size=2):
@@ -415,6 +429,29 @@ def make_dataset(complement=True):
         train[f"{col_1}_div_{col_2}"] = train[col_1] / train[col_2]
         test[f"{col_1}_div_{col_2}"] = test[col_1] / test[col_2]
 
+    # channelIdごとのcategoryIdの種類の数
+    tmp = all_df.groupby("channelId").categoryId.nunique()
+    train["unique_categoryId_group_channelId"] = train.channelId.map(tmp)
+    test["unique_categoryId_group_channelId"] = test.channelId.map(tmp)
+
+    # 動画タイトルや動画説明にチャンネルタイトルが入ってるかどうか
+    train["channelTitle_in_title"] = train.apply(lambda x: 1 if x["channelTitle"] in x["title"] else 0, axis=1)
+    test["channelTitle_in_title"] = test.apply(lambda x: 1 if x["channelTitle"] in x["title"] else 0, axis=1)
+    train["channelTitle_in_description"] = train.apply(
+        lambda x: 1 if x["channelTitle"] in str(x["description"]) else 0, axis=1)
+    test["channelTitle_in_description"] = test.apply(
+        lambda x: 1 if x["channelTitle"] in str(x["description"]) else 0, axis=1)
+
+    # タイトルと説明の割合
+    train["title_per_description_len"] = train.apply(lambda x: len(x["title"]) / len(str(x["description"])), axis=1)
+    test["title_per_description_len"] = test.apply(lambda x: len(x["title"]) / len(str(x["description"])), axis=1)
+
+    # titleにtagが含まれている数と割合
+    train["tag_in_title_count"] = train.apply(lambda x: count_tag_in_title(x["tags"], x["title"]), axis=1)
+    test["tag_in_title_count"] = test.apply(lambda x: count_tag_in_title(x["tags"], x["title"]), axis=1)
+    train["tag_in_title_per"] = train["tag_in_title_count"] / train.tags.apply(lambda x: str(x).count("|") + 1)
+    test["tag_in_title_per"] = test["tag_in_title_count"] / test.tags.apply(lambda x: str(x).count("|") + 1)
+
     with open(f"./data/input/pkl/train_complement_{complement}.pkl", "wb") as f:
         pickle.dump(train, f)
     with open(f"./data/input/pkl/test_complement_{complement}.pkl", "wb") as f:
@@ -424,11 +461,11 @@ def make_dataset(complement=True):
 
 
 def main(complement=True):
-    # train, test = make_dataset(complement=complement)
-    with open(f"./data/input/pkl/train_complement_{complement}.pkl", "rb") as f:
-        train = pickle.load(f)
-    with open(f"./data/input/pkl/test_complement_{complement}.pkl", "rb") as f:
-        test = pickle.load(f)
+    train, test = make_dataset(complement=complement)
+    # with open(f"./data/input/pkl/train_complement_{complement}.pkl", "rb") as f:
+    #     train = pickle.load(f)
+    # with open(f"./data/input/pkl/test_complement_{complement}.pkl", "rb") as f:
+    #     test = pickle.load(f)
 
     drop_list = ["id", "video_id", "title", "channelId", "channelTitle",
                  "tags", "thumbnail_link", "description"]
