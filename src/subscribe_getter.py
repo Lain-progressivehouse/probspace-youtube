@@ -1,10 +1,17 @@
+"""
+未使用
+channelIdから登録者数や総視聴回数などを取得できるが使用して良いのかわからなかったので使用しなかった
+ちなみに1日のAPIの取得回数があるので全てのデータを取得するには5~6日ぐらいかかるので途中でやめた
+"""
+
+
 import numpy as np
 import pandas as pd
 from time import sleep
 from tqdm import tqdm
 from googleapiclient.discovery import build
 
-api_key = "AIzaSyD2mJQwqR8Y2qOwercUoHUPBcNv45HlbZU"
+api_key = "hogehoge"
 youtube = build("youtube", "v3", developerKey=api_key)
 
 

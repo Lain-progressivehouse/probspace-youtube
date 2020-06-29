@@ -41,7 +41,7 @@ def predict_cv(params, train_x, train_y, test_x, seed=22):
     # sss = GroupKFold(n_splits=10)
 
     # クロスバリデーションで学習・予測を行い、予測値とインデックスを保存する
-    for i, (tr_idx, va_idx) in enumerate(sss.split(train_x, train_y // 4)):
+    for i, (tr_idx, va_idx) in enumerate(sss.split(train_x, train_y // 2)):
         tr_x, va_x = train_x.iloc[tr_idx], train_x.iloc[va_idx]
         tr_y, va_y = train_y.iloc[tr_idx], train_y.iloc[va_idx]
 
@@ -50,16 +50,16 @@ def predict_cv(params, train_x, train_y, test_x, seed=22):
 
         dtrain = lgb.Dataset(tr_x, tr_y)
         dtest = lgb.Dataset(va_x, va_y, reference=dtrain)
-        model = lgb.train(params, dtrain, 2000, valid_sets=dtest, verbose_eval=100)
+        model = lgb.train(params, dtrain, 20000, valid_sets=dtest, verbose_eval=100)
 
         # best_params, history = dict(), list()
         # model = lightgbm_tuner.train(params, dtrain, num_boost_round=2000, valid_sets=dtest, verbose_eval=False,
         #                              best_params=best_params,
         #                              tuning_history=history, early_stopping_rounds=100)
         # print(best_params)
-        pred = model.predict(va_x)
+        pred = model.predict(va_x, num_iteration=model.best_iteration)
         preds.append(pred)
-        pred_test = model.predict(test_x)
+        pred_test = model.predict(test_x, num_iteration=model.best_iteration)
         preds_test.append(pred_test)
         va_indxes.append(va_idx)
         importance["importance"] += model.feature_importance()
@@ -105,19 +105,32 @@ def output_metrics(y, pred_y):
 #     'random_state': 0,
 # }
 
+# params = {
+#     'objective': 'mean_squared_error',
+#     # 'max_depth': 6,
+#     'learning_rate': 0.1,
+#     "boosting_type": "gbdt",
+#     "metric": 'rmse',
+#     'lambda_l1': 3.1601163039739164e-06,
+#     'lambda_l2': 0.00029839724492614994,
+#     'num_leaves': 26,
+#     'feature_fraction': 0.6,
+#     'bagging_fraction': 1.0,
+#     'bagging_freq': 0,
+#     'min_child_samples': 20,
+#     'random_state': 0,
+#     'early_stopping_rounds': 200,
+#     'n_estimators': 50000,
+# }
+
 params = {
     'objective': 'mean_squared_error',
     # 'max_depth': 6,
-    'learning_rate': 0.1,
+    'learning_rate': 0.04,
     "boosting_type": "gbdt",
     "metric": 'rmse',
-    'lambda_l1': 3.1601163039739164e-06,
-    'lambda_l2': 0.00029839724492614994,
-    'num_leaves': 26,
-    'feature_fraction': 0.6,
-    'bagging_fraction': 1.0,
-    'bagging_freq': 0,
-    'min_child_samples': 20,
+    'lambda_l1': 1.0181820909917622e-08, 'lambda_l2': 4.458269791558958e-05, 'num_leaves': 31, 'feature_fraction': 0.7,
+    'bagging_fraction': 1.0, 'bagging_freq': 0, 'min_child_samples': 20,
     'random_state': 0,
     'early_stopping_rounds': 200,
     'n_estimators': 50000,
@@ -247,8 +260,8 @@ def ensemble_diff_category_TE(train_x=None, train_y=None, test_x=None, ids=None)
 
 def em(complement=True):
     train_x, train_y, test_x, ids = data_frame.main(complement=complement)
-    embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids, create=True)
-    # embeded_lgb_feature = feature_selection.main(train_x, train_y, test_x, ids)
+    # embeded_lgb_feature = feature_selection.null_importance(train_x, train_y, test_x, ids, create=True)
+    embeded_lgb_feature = feature_selection.main(train_x, train_y, test_x, ids)
     if "categoryId_TE_mean" not in embeded_lgb_feature:
         embeded_lgb_feature.append("categoryId_TE_mean")
     if "ratings_disabled" not in embeded_lgb_feature:
@@ -260,14 +273,15 @@ def em(complement=True):
 
     preds_train = []
     preds_test = []
-    # categoryIdのTEの差分
-    pred_train, pred_test = ensemble_diff_category_TE(
+
+    # 通常
+    pred_train, pred_test = ensemble(
         train_x, train_y, test_x, ids)
     preds_train.append(pred_train)
     preds_test.append(pred_test)
 
-    # 通常
-    pred_train, pred_test = ensemble(
+    # categoryIdのTEの差分
+    pred_train, pred_test = ensemble_diff_category_TE(
         train_x, train_y, test_x, ids)
     preds_train.append(pred_train)
     preds_test.append(pred_test)

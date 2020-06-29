@@ -19,7 +19,7 @@ def get_predict_test(params, train_x, train_y, test_x, validation):
         dtest = lgb.Dataset(va_x, va_y, reference=dtrain)
         model = lgb.train(params, dtrain, 2000, valid_sets=dtest, verbose_eval=100)
 
-        pred_test = model.predict(test_x)
+        pred_test = model.predict(test_x, num_iteration=model.best_iteration)
         preds_test.append(pred_test)
 
     pred_test_mean = np.mean(preds_test, axis=0)
@@ -32,7 +32,7 @@ def get_predict_test(params, train_x, train_y, test_x, validation):
 def get_pseudo_data_set(train_x, train_y, test_x: pd.DataFrame, threshold=0.2):
     sss = StratifiedKFold(n_splits=10, shuffle=True, random_state=1)
     pred_test_mean, pred_test_std = get_predict_test(
-        learn_lgb.params, train_x, train_y, test_x, sss.split(train_x, train_y // 4))
+        learn_lgb.params, train_x, train_y, test_x, sss.split(train_x, train_y // 2))
 
     train_x = pd.concat([train_x, test_x[pred_test_std < threshold].copy()]).reset_index(drop=True)
     train_y = pd.concat([train_y, pd.Series(pred_test_mean[pred_test_std < threshold])]).reset_index(drop=True)

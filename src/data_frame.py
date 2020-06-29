@@ -452,6 +452,14 @@ def make_dataset(complement=True):
     train["tag_in_title_per"] = train["tag_in_title_count"] / train.tags.apply(lambda x: str(x).count("|") + 1)
     test["tag_in_title_per"] = test["tag_in_title_count"] / test.tags.apply(lambda x: str(x).count("|") + 1)
 
+    # channelIdごとのdisabledの割合
+    tmp = all_df.groupby("channelId").ratings_disabled.mean()
+    train["group_channelId_ratings_disabled_ratio"] = train.channelId.map(tmp)
+    test["group_channelId_ratings_disabled_ratio"] = test.channelId.map(tmp)
+    tmp = all_df.groupby("channelId").comments_disabled.mean()
+    train["group_channelId_comments_disabled_ratio"] = train.channelId.map(tmp)
+    test["group_channelId_comments_disabled_ratio"] = test.channelId.map(tmp)
+
     with open(f"./data/input/pkl/train_complement_{complement}.pkl", "wb") as f:
         pickle.dump(train, f)
     with open(f"./data/input/pkl/test_complement_{complement}.pkl", "wb") as f:
@@ -461,11 +469,11 @@ def make_dataset(complement=True):
 
 
 def main(complement=True):
-    train, test = make_dataset(complement=complement)
-    # with open(f"./data/input/pkl/train_complement_{complement}.pkl", "rb") as f:
-    #     train = pickle.load(f)
-    # with open(f"./data/input/pkl/test_complement_{complement}.pkl", "rb") as f:
-    #     test = pickle.load(f)
+    # train, test = make_dataset(complement=complement)
+    with open(f"./data/input/pkl/train_complement_{complement}.pkl", "rb") as f:
+        train = pickle.load(f)
+    with open(f"./data/input/pkl/test_complement_{complement}.pkl", "rb") as f:
+        test = pickle.load(f)
 
     drop_list = ["id", "video_id", "title", "channelId", "channelTitle",
                  "tags", "thumbnail_link", "description"]
