@@ -1,3 +1,8 @@
+#YouTube動画視聴回数予測
+Public 4th, Private 4th
+
+URL: https://prob.space/competitions/youtube-view-count
+
 ## はじめに
 マルチモーダルなコンペで工夫のしがいがあり非常に楽しいコンペでした．コンペを開催してくださった運営と，参加者の皆さん，そしてチームを組んで下さったupuraさんに感謝を申し上げます．
 以下のSolutionは私の取り組みです．
