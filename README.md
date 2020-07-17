@@ -1,4 +1,4 @@
-#YouTube動画視聴回数予測
+# YouTube動画視聴回数予測
 Public 4th, Private 4th
 
 URL: https://prob.space/competitions/youtube-view-count
